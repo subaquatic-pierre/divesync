@@ -1,0 +1,17 @@
+[package]
+name = "divesync"
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+members = [
+    "core",
+    "cli",
+    "ffi",
+    "api"
+]
+
+[profile.test]
+default = ["clippy"]
+
+[dependencies]

@@ -1,0 +1,13 @@
+[package]
+name = "ffi"
+version = "0.1.0"
+edition = "2021"
+
+
+[lib]
+name = "ffi"
+path = "src/lib.rs"
+crate-type = ["cdylib"]
+
+[dependencies]
+core = { path = "../core" }

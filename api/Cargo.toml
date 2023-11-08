@@ -1,0 +1,11 @@
+[package]
+name = "api"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "divesync-api"
+path = "src/main.rs"
+
+[dependencies]
+core = { path = "../core" }
