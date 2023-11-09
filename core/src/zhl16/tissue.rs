@@ -1,3 +1,5 @@
+use std::fmt;
+
 use crate::gas::GasType;
 #[allow(non_snake_case)]
 use crate::gas::{Gas, GasMix, GasSymbol, PPN2};
@@ -6,19 +8,13 @@ use crate::utils::n_root;
 use crate::zhl16::utils::build_air_tissue;
 
 #[derive(Debug, Clone)]
-pub enum ZHL16Variant {
-    A,
-    B,
-    C,
-}
-
-#[derive(Debug, Clone)]
 pub struct ZHL16Compartment {
     pp_n2: f32,
     pp_he: f32,
     pub cpt_num: usize,
     pub gas_mix: GasMix,
     pub variant: ZHL16Variant,
+    pub elapsed_time: f32,
 }
 
 impl TissueCompartment for ZHL16Compartment {
@@ -36,6 +32,9 @@ impl TissueCompartment for ZHL16Compartment {
         let current_pp = self.pp_he;
         let new_pp = current_pp + (gas_pp - current_pp) * (1.0 - exp);
         self.pp_he = new_pp;
+
+        // update elapsed time
+        self.elapsed_time += time;
     }
 
     fn half_time(&self) -> f32 {
@@ -100,6 +99,7 @@ impl ZHL16Compartment {
         };
 
         Self {
+            elapsed_time: 0.0,
             cpt_num,
             pp_n2: gas_mix.pp_n2(1.0),
             pp_he: gas_mix.pp_he(1.0),
@@ -255,6 +255,23 @@ impl ZHL16Compartment {
 
     fn he_ht(&self) -> f32 {
         ZHL16Compartment::HE_HALF_TIMES[self.cpt_num]
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum ZHL16Variant {
+    A,
+    B,
+    C,
+}
+
+impl fmt::Display for ZHL16Variant {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ZHL16Variant::A => write!(f, "ZHL16-A"),
+            ZHL16Variant::B => write!(f, "ZHL16-B"),
+            ZHL16Variant::C => write!(f, "ZHL16-C"),
+        }
     }
 }
 

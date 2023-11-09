@@ -1,4 +1,10 @@
-use crate::{algorithm::DecoAlgorithm, deco::DecoStop, profile::DiveProfile, utils::calc_ata};
+use crate::{
+    algorithm::{DecoAlgorithm, DecoAlgorithmVariant},
+    deco::DecoStop,
+    profile::DiveProfile,
+    tissue::CompartmentSnapshot,
+    utils::calc_ata,
+};
 
 pub struct DSATAlgorithm {}
 
@@ -9,8 +15,8 @@ pub struct DSATParams {
 }
 
 impl DecoAlgorithm for DSATAlgorithm {
-    fn name(&self) -> &str {
-        "DSAT"
+    fn variant(&self) -> DecoAlgorithmVariant {
+        DecoAlgorithmVariant::Dsat
     }
 
     fn compute_deco_stops(&self, dive_profile: DiveProfile) -> Vec<DecoStop> {
@@ -22,6 +28,14 @@ impl DecoAlgorithm for DSATAlgorithm {
     fn compute_ndl(&self, dive_profile: DiveProfile) -> u32 {
         42
     }
+
+    fn snapshot(&self) -> Vec<CompartmentSnapshot> {
+        let snaps = vec![];
+
+        snaps
+    }
+
+    fn run(&mut self, ata: f32, time: f32) {}
 }
 
 impl DSATAlgorithm {

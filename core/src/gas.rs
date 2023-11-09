@@ -148,7 +148,8 @@ impl Display for GasMix {
         // Implement the Display trait for GasMix
         write!(
             f,
-            "Gas Mix (Oxygen: {}, Nitrogen: {}, Helium: {})",
+            "Gas Mix:\n
+               (Oxygen: {}, Nitrogen: {}, Helium: {})",
             self.oxygen, self.nitrogen, self.helium
         )
     }

@@ -1,1 +1,1 @@
-pub mod algo;
+pub mod algorithm;
