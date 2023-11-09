@@ -1,9 +1,4 @@
-use crate::{
-    algorithm::DecoAlgorithm,
-    deco::DecoStop,
-    profile::DiveProfile,
-    utils::{calc_ata, calc_pp},
-};
+use crate::{algorithm::DecoAlgorithm, deco::DecoStop, profile::DiveProfile, utils::calc_ata};
 
 pub struct DSATAlgorithm {}
 

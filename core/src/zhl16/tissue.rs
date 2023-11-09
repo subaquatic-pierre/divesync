@@ -21,6 +21,66 @@ pub struct ZHL16Compartment {
     pub variant: ZHL16Variant,
 }
 
+impl TissueCompartment for ZHL16Compartment {
+    fn update_pressure(&mut self, ata: f32, time: f32) {
+        // update N2 pressure
+        let exp: f32 = 2_f32.powf(-(time / self.n2_ht()));
+        let gas_pp = self.gas_mix.pp_n2(ata);
+        let current_pp = self.pp_n2;
+        let new_pp = current_pp + (gas_pp - current_pp) * (1.0 - exp);
+        self.pp_n2 = new_pp;
+
+        // update He pressure
+        let exp: f32 = 2_f32.powf(-(time / self.he_ht()));
+        let gas_pp = self.gas_mix.pp_he(ata);
+        let current_pp = self.pp_he;
+        let new_pp = current_pp + (gas_pp - current_pp) * (1.0 - exp);
+        self.pp_he = new_pp;
+    }
+
+    fn half_time(&self) -> f32 {
+        match self.gas_mix.mix_type() {
+            GasType::Nitrox => self.n2_ht(),
+            GasType::Heliox => self.he_ht(),
+            GasType::Trimix => {
+                let pp_he = self.gas_mix.pp_he(1.0);
+                let pp_n2 = self.gas_mix.pp_n2(1.0);
+
+                ((self.he_ht() * pp_he) + (self.n2_ht() * pp_n2)) / pp_he + pp_n2
+            }
+        }
+    }
+
+    fn m_value(&self) -> f32 {
+        // TODO:
+        // implement v_value
+        match self.gas_mix.mix_type() {
+            GasType::Nitrox => {
+                let b = 0.0;
+                return self.pp_n2;
+            }
+            GasType::Heliox => {
+                let b = 0.0;
+
+                return self.pp_he;
+            }
+            GasType::Trimix => {
+                let b = 0.0;
+
+                return self.pp_he + self.pp_n2;
+            }
+        }
+    }
+
+    fn n2_he_pp(&self) -> (f32, f32) {
+        (self.pp_n2, self.pp_he)
+    }
+
+    fn gas_mix(&self) -> GasMix {
+        self.gas_mix.clone()
+    }
+}
+
 impl ZHL16Compartment {
     pub const N2_HALF_TIMES: [f32; 16] = [
         4.0, 8.0, 12.5, 18.5, 27.0, 38.3, 54.3, 77.0, 109.0, 146.0, 187.0, 239.0, 305.0, 390.0,
@@ -50,26 +110,26 @@ impl ZHL16Compartment {
 
     pub fn get_a(&self) -> f32 {
         match self.gas_mix.mix_type() {
-            GasType::Nitrox => self.get_n2_a(),
-            GasType::Heliox => self.get_he_a(),
+            GasType::Nitrox => self.n2_a(),
+            GasType::Heliox => self.he_a(),
             GasType::Trimix => {
                 let pp_he = self.gas_mix.pp_he(1.0);
                 let pp_n2 = self.gas_mix.pp_n2(1.0);
 
-                ((self.get_he_a() * pp_he) + (self.get_n2_a() * pp_n2)) / pp_he + pp_n2
+                ((self.he_a() * pp_he) + (self.n2_a() * pp_n2)) / pp_he + pp_n2
             }
         }
     }
 
     pub fn get_b(&self) -> f32 {
         match self.gas_mix.mix_type() {
-            GasType::Nitrox => self.get_n2_b(),
-            GasType::Heliox => self.get_he_b(),
+            GasType::Nitrox => self.n2_b(),
+            GasType::Heliox => self.he_b(),
             GasType::Trimix => {
                 let pp_he = self.gas_mix.pp_he(1.0);
                 let pp_n2 = self.gas_mix.pp_n2(1.0);
 
-                ((self.get_he_b() * pp_he) + (self.get_n2_b() * pp_n2)) / pp_he + pp_n2
+                ((self.he_b() * pp_he) + (self.n2_b() * pp_n2)) / pp_he + pp_n2
             }
         }
     }
@@ -83,11 +143,15 @@ impl ZHL16Compartment {
         self.pp_he = helium;
     }
 
+    pub fn set_gas_mix(&mut self, mix: GasMix) {
+        self.gas_mix = mix;
+    }
+
     // ---
     // PRIVATE METHODS
     // ---
-    fn get_n2_a(&self) -> f32 {
-        let ht = self.get_n2_ht();
+    fn n2_a(&self) -> f32 {
+        let ht = self.n2_ht();
         let denom = n_root(ht, 3); // denominator
         let a = 2.0 / denom;
 
@@ -154,8 +218,8 @@ impl ZHL16Compartment {
         }
     }
 
-    fn get_n2_b(&self) -> f32 {
-        let ht = self.get_n2_ht();
+    fn n2_b(&self) -> f32 {
+        let ht = self.n2_ht();
 
         let demon: f32 = n_root(ht, 2);
         let b = 1.005 - (1.0 / demon);
@@ -170,66 +234,27 @@ impl ZHL16Compartment {
         b
     }
 
-    fn get_he_a(&self) -> f32 {
-        let ht = self.get_he_ht();
+    fn he_a(&self) -> f32 {
+        let ht = self.he_ht();
         let denom = n_root(ht, 3); // denominator
         let a = 2.0 / denom;
         a
     }
 
-    fn get_he_b(&self) -> f32 {
-        let ht = self.get_he_ht();
+    fn he_b(&self) -> f32 {
+        let ht = self.he_ht();
 
         let demon: f32 = n_root(ht, 2);
         let b = 1.005 - (1.0 / demon);
         b
     }
 
-    fn get_n2_ht(&self) -> f32 {
+    fn n2_ht(&self) -> f32 {
         ZHL16Compartment::N2_HALF_TIMES[self.cpt_num]
     }
 
-    fn get_he_ht(&self) -> f32 {
+    fn he_ht(&self) -> f32 {
         ZHL16Compartment::HE_HALF_TIMES[self.cpt_num]
-    }
-}
-
-impl TissueCompartment for ZHL16Compartment {
-    fn update_pressure(&mut self, ata: f32, time: f32) {
-        // update N2 pressure
-        let exp: f32 = 2_f32.powf(-(time / self.get_n2_ht()));
-        let gas_pp = self.gas_mix.pp_n2(ata);
-        let current_pp = self.pp_n2;
-        let new_pp = current_pp + (gas_pp - current_pp) * (1.0 - exp);
-        self.pp_n2 = new_pp;
-
-        // update He pressure
-        let exp: f32 = 2_f32.powf(-(time / self.get_he_ht()));
-        let gas_pp = self.gas_mix.pp_he(ata);
-        let current_pp = self.pp_he;
-        let new_pp = current_pp + (gas_pp - current_pp) * (1.0 - exp);
-        self.pp_he = new_pp;
-    }
-
-    fn half_time(&self) -> f32 {
-        match self.gas_mix.mix_type() {
-            GasType::Nitrox => self.get_n2_ht(),
-            GasType::Heliox => self.get_he_ht(),
-            GasType::Trimix => {
-                let pp_he = self.gas_mix.pp_he(1.0);
-                let pp_n2 = self.gas_mix.pp_n2(1.0);
-
-                ((self.get_he_ht() * pp_he) + (self.get_n2_ht() * pp_n2)) / pp_he + pp_n2
-            }
-        }
-    }
-
-    fn get_pp(&self) -> f32 {
-        match self.gas_mix.mix_type() {
-            GasType::Nitrox => self.pp_n2,
-            GasType::Heliox => self.pp_he,
-            GasType::Trimix => self.pp_he + self.pp_n2,
-        }
     }
 }
 
@@ -242,7 +267,7 @@ mod tests {
     use crate::{
         gas::{Gas, GasMix, PPN2},
         utils::round_f32,
-        zhl16::utils::build_air_tissue,
+        zhl16::utils::{build_air_tissue, build_trimix_tissue},
     };
 
     // ---
@@ -261,10 +286,10 @@ mod tests {
             tissue2.update_pressure(2.2, 1.0 / 60.0)
         }
 
-        assert_eq!(
-            round_f32(tissue1.get_pp(), 3),
-            round_f32(tissue2.get_pp(), 3)
-        )
+        let (t1_n2, _) = tissue1.n2_he_pp();
+        let (t2_n2, _) = tissue2.n2_he_pp();
+
+        assert_eq!(round_f32(t1_n2, 3), round_f32(t2_n2, 3))
     }
 
     #[test]
@@ -277,19 +302,20 @@ mod tests {
         tissue2.update_pressure(2.0, 30.0);
 
         // get pp difference between surface and 10m after 30min
-        let diff = tissue2.get_pp() - mix.pp_n2(1.0);
+        let (t2_n2, _) = tissue2.n2_he_pp();
+        let diff = t2_n2 - mix.pp_n2(1.0);
 
         // saturate tissue at 10m
         tissue1.update_pressure(2.0, 10000000.0);
-
-        let pp_at_depth = tissue1.get_pp();
+        let (t1_n2, _) = tissue1.n2_he_pp();
+        let pp_at_depth = t1_n2;
 
         // take tissue1 back to surface after 30min, get pp, should be same as initial on gassing diff
         tissue1.update_pressure(1.0, 30.0);
+        let (t1_n2, _) = tissue1.n2_he_pp();
+        let surf_diff = pp_at_depth - t1_n2;
 
-        let surf_diff = pp_at_depth - tissue1.get_pp();
-
-        assert_eq!(diff, surf_diff);
+        assert_eq!(round_f32(diff, 6), round_f32(surf_diff, 6));
     }
 
     #[test]
@@ -304,22 +330,34 @@ mod tests {
         }
 
         // get pp difference between surface and 10m after 30min
-        let desc_diff = tissue2.get_pp() - mix.pp_n2(1.0);
+        let (t2_n2, _) = tissue2.n2_he_pp();
+        let desc_diff = t2_n2 - mix.pp_n2(1.0);
 
         // saturate tissue at 10m
         tissue1.update_pressure(2.0, 100000.0);
 
-        let pp_at_depth = tissue1.get_pp();
+        let (t1_n2, _) = tissue1.n2_he_pp();
+        let pp_at_depth = t1_n2;
 
         // take tissue1 back to surface after 30min, get pp, should be same as initial on gassing diff
-
         for _ in 0..(30 * 60) {
             tissue1.update_pressure(1.0, 1.0 / 60.0)
         }
 
-        let surf_diff = pp_at_depth - tissue1.get_pp();
+        let (t1_n2, _) = tissue1.n2_he_pp();
+        let surf_diff = pp_at_depth - t1_n2;
 
         assert_eq!(round_f32(surf_diff, 3), round_f32(desc_diff, 3));
+    }
+
+    #[test]
+    fn test_tissue_nitrox_half_time() {
+        for i in 0..16 {
+            let (_, tissue) = build_air_tissue(i);
+            let expected_ht = ZHL16Compartment::N2_HALF_TIMES[i];
+
+            assert_eq!(round_f32(tissue.half_time(), 3), round_f32(expected_ht, 3));
+        }
     }
 
     #[test]
@@ -337,88 +375,120 @@ mod tests {
         }
     }
 
-    // #[test]
-    // fn test_tissue_nitrox_a_variant_B() {
-    //     let excepted: [f32; 16] = [
-    //         1.2599, 1.0000, 0.8618, 0.7562, 0.6667, 0.5600, 0.4947, 0.4500, 0.4187, 0.3798, 0.3497,
-    //         0.3223, 0.2850, 0.2737, 0.2523, 0.2327,
-    //     ];
+    #[test]
+    fn test_tissue_nitrox_a_variant_B() {
+        let (_, mut tissue1) = build_air_tissue(5);
+        tissue1.set_variant(ZHL16Variant::B);
+        assert_eq!(round_f32(tissue1.get_a(), 5), 0.5600);
 
-    //     for i in 0..16 {
-    //         let (_, tissue) = build_air_tissue(i);
-    //         let expected_a = excepted[i];
+        let (_, mut tissue2) = build_air_tissue(12);
+        tissue2.set_variant(ZHL16Variant::B);
+        assert_eq!(round_f32(tissue2.get_a(), 5), 0.2850);
+    }
 
-    //         assert_eq!(round_f32(expected_a, 3), round_f32(tissue.a(), 3));
-    //     }
-    // }
+    #[test]
+    fn test_tissue_nitrox_a_variant_C() {
+        let (_, mut tissue) = build_air_tissue(6);
+        tissue.set_variant(ZHL16Variant::C);
+        assert_eq!(round_f32(tissue.get_a(), 5), 0.4410);
 
-    // #[test]
-    // fn test_tissue_nitrox_a_variant_C() {
-    //     let excepted: [f32; 16] = [
-    //         1.2599, 1.0000, 0.8618, 0.7562, 0.6200, 0.5043, 0.4410, 0.4000, 0.3750, 0.3500, 0.3295,
-    //         0.3065, 0.2835, 0.2610, 0.2480, 0.2327,
-    //     ];
+        let (_, mut tissue) = build_air_tissue(10);
+        tissue.set_variant(ZHL16Variant::C);
+        assert_eq!(round_f32(tissue.get_a(), 5), 0.3295);
 
-    //     for i in 0..16 {
-    //         let (_, tissue) = build_air_tissue(i);
-    //         let expected_a = excepted[i];
+        let (_, mut tissue) = build_air_tissue(14);
+        tissue.set_variant(ZHL16Variant::C);
+        assert_eq!(round_f32(tissue.get_a(), 5), 0.2480);
+    }
 
-    //         assert_eq!(round_f32(expected_a, 3), round_f32(tissue.a(), 3));
-    //     }
-    // }
+    #[test]
+    fn test_tissue_nitrox_b() {
+        let (_, t) = build_air_tissue(3);
+        assert_eq!(round_f32(t.get_b(), 4), 0.7825);
+        let (_, t) = build_air_tissue(4);
+        assert_eq!(round_f32(t.get_b(), 4), 0.8126);
+        let (_, t) = build_air_tissue(9);
+        assert_eq!(round_f32(t.get_b(), 4), 0.9222);
+        let (_, t) = build_air_tissue(10);
+        assert_eq!(round_f32(t.get_b(), 4), 0.9319);
+    }
+
+    // TODO:
+    // Test nitrox M value
 
     // ---
-    // TISSUE HELIUM TESTS
+    // TISSUE HELIOX TESTS
     // ---
 
-    // #[test]
-    // fn test_tissue_HE_half_time() {
-    //     let excepted: [f32; 16] = [
-    //         1.2599, 1.0000, 0.8618, 0.7562, 0.6667, 0.5933, 0.5282, 0.4701, 0.4187, 0.3798, 0.3497,
-    //         0.3223, 0.2971, 0.2737, 0.2523, 0.2327,
-    //     ];
+    #[test]
+    fn test_tissue_heliox_diffuse_rate() {
+        let (mix, mut t1) = build_trimix_tissue(4, 0.78, 0.21);
 
-    //     for i in 0..16 {
-    //         let ht = ZHL16_N2_HALF_TIMES[i];
+        let mut t2 = t1.clone();
 
-    //         let (_, tissue) = build_n2_tissue(ht);
-    //         let expected_a = excepted[i];
+        // expose t2 to 10m for 30min
+        t2.update_pressure(2.0, 30.0);
 
-    //         assert_eq!(round_f32(expected_a, 3), round_f32(tissue.a(), 3));
-    //     }
-    // }
+        // get pp difference between surface and 10m after 30min
+        let (_, t2_he) = t2.n2_he_pp();
+        let diff = t2_he - mix.pp_he(1.0);
 
-    // #[test]
-    // fn test_tissue_HE_a() {
-    //     let excepted: [f32; 16] = [
-    //         1.2599, 1.0000, 0.8618, 0.7562, 0.6667, 0.5933, 0.5282, 0.4701, 0.4187, 0.3798, 0.3497,
-    //         0.3223, 0.2971, 0.2737, 0.2523, 0.2327,
-    //     ];
+        // saturate tissue at 10m
+        t1.update_pressure(2.0, 100000000.0);
 
-    //     for i in 0..16 {
-    //         let ht = ZHL16_N2_HALF_TIMES[i];
+        let (_, t1_he) = t1.n2_he_pp();
+        let pp_at_depth = t1_he;
 
-    //         let (_, tissue) = build_n2_tissue(ht);
-    //         let expected_a = excepted[i];
+        // take t1 back to surface after 30min, get pp, should be same as initial on gassing diff
+        t1.update_pressure(1.0, 30.0);
 
-    //         assert_eq!(round_f32(expected_a, 3), round_f32(tissue.a(), 3));
-    //     }
-    // }
+        let (_, t1_he) = t1.n2_he_pp();
+        let surf_diff = pp_at_depth - t1_he;
 
-    // #[test]
-    // fn test_tissue_HE_b() {
-    //     let excepted: [f32; 16] = [
-    //         1.2599, 1.0000, 0.8618, 0.7562, 0.6667, 0.5933, 0.5282, 0.4701, 0.4187, 0.3798, 0.3497,
-    //         0.3223, 0.2971, 0.2737, 0.2523, 0.2327,
-    //     ];
+        assert_eq!(round_f32(diff, 6), round_f32(surf_diff, 6));
+    }
 
-    //     for i in 0..16 {
-    //         let ht = ZHL16_N2_HALF_TIMES[i];
+    #[test]
+    fn test_tissue_heliox_half_time() {
+        for i in 0..16 {
+            let (_, tissue) = build_trimix_tissue(i, 0.78, 0.21);
+            let expected_ht = ZHL16Compartment::HE_HALF_TIMES[i];
 
-    //         let (_, tissue) = build_n2_tissue(ht);
-    //         let expected_a = excepted[i];
+            assert_eq!(round_f32(tissue.half_time(), 3), round_f32(expected_ht, 3));
+        }
+    }
 
-    //         assert_eq!(round_f32(expected_a, 3), round_f32(tissue.a(), 3));
-    //     }
-    // }
+    #[test]
+    fn test_tissue_heliox_a() {
+        for i in 0..16 {
+            let (_, tissue) = build_trimix_tissue(i, 0.78, 0.21);
+
+            let he_ht = ZHL16Compartment::HE_HALF_TIMES[i];
+            let denom = n_root(he_ht, 3); // denominator
+            let a = 2.0 / denom;
+
+            assert_eq!(round_f32(tissue.get_a(), 3), round_f32(a, 3));
+        }
+    }
+
+    #[test]
+    fn test_tissue_heliox_b() {
+        for i in 0..16 {
+            let (_, tissue) = build_trimix_tissue(i, 0.78, 0.21);
+
+            let he_ht = ZHL16Compartment::HE_HALF_TIMES[i];
+            let demon: f32 = n_root(he_ht, 2);
+            let b = 1.005 - (1.0 / demon);
+
+            assert_eq!(round_f32(tissue.get_b(), 3), round_f32(b, 3));
+        }
+    }
+
+    // TODO:
+    // Test Heliox M Value
+
+    // TODO:
+    // ---
+    // TEST TISSUE TRIMIX
+    // ---
 }

@@ -2,6 +2,7 @@ use crate::deco::DecoStop;
 use crate::profile::DiveProfile;
 
 use crate::dsat::algo::DSATAlgorithm;
+use crate::tissue::TissueCompartment;
 use crate::zhl16::algo::ZHL16Algorithm;
 
 pub trait DecoAlgorithm {

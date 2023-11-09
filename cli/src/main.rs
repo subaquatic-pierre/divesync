@@ -1,7 +1,14 @@
+mod args;
 mod cli;
+mod cmds;
+
 use cli::init;
 
-use core::{algorithm::get_algo, profile::DiveProfile};
+use core::{
+    algorithm::get_algo,
+    gas::{GasMix, PPO2},
+    profile::{DiveProfile, DiveProfileLevel},
+};
 
 fn main() {
     let cmd = init();
@@ -11,7 +18,7 @@ fn main() {
     match matches.subcommand() {
         Some(("ndl", sub_matches)) => {
             let depth = sub_matches
-                .get_one::<f64>("depth")
+                .get_one::<f32>("depth")
                 .expect("depth is required");
             let algo = sub_matches
                 .get_one::<String>("algo")
@@ -25,8 +32,13 @@ fn main() {
 
             let algo = algo.unwrap();
             let profile = DiveProfile {
-                depth: *depth,
-                time: 0,
+                levels: vec![{
+                    DiveProfileLevel {
+                        depth: *depth,
+                        time: 0,
+                        gas_mix: GasMix::new_nitrox(PPO2),
+                    }
+                }],
             };
 
             let ndl = algo.compute_ndl(profile);
