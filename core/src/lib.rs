@@ -1,5 +1,4 @@
 #[allow(clippy::new_without_default)]
-#[allow(dead_code)]
 pub mod algorithm;
 pub mod deco;
 pub mod dsat;

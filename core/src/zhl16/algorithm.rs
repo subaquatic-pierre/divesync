@@ -41,14 +41,20 @@ impl DecoAlgorithm for ZHL16Algorithm {
                 half_time: t.half_time(),
                 cpt_num: t.cpt_num,
                 variant: self.variant(),
+                last_depth: t.last_depth,
             })
         }
 
         snaps
     }
 
-    fn run(&mut self, ata: f32, time: f32) {
+    fn run(&mut self, mix: GasMix, ata: f32, time: f32) {
+        if self.tissues.len() == 0 {
+            self.init(mix.clone());
+        }
+
         for t in &mut self.tissues {
+            t.set_gas_mix(mix.clone());
             t.update_pressure(ata, time);
         }
     }
@@ -63,6 +69,12 @@ impl ZHL16Algorithm {
     }
 
     pub fn init(&mut self, mix: GasMix) {
+        if self.tissues.len() > 0 {
+            panic!(
+                "Cannot re-initialize the ZHL16 algorithm after it has already bean initialized."
+            )
+        }
+
         let mut tissues: Vec<ZHL16Compartment> = vec![];
 
         for i in 0..16 {
@@ -72,4 +84,8 @@ impl ZHL16Algorithm {
 
         self.tissues = tissues;
     }
+}
+
+mod test {
+    // TODO: ZHL16 algorithm tests
 }

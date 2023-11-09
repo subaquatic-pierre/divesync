@@ -23,3 +23,7 @@ impl DiveProfile {
         })
     }
 }
+
+mod test {
+    // TODO: Test DiveProfile
+}

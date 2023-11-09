@@ -15,6 +15,7 @@ pub struct ZHL16Compartment {
     pub gas_mix: GasMix,
     pub variant: ZHL16Variant,
     pub elapsed_time: f32,
+    pub last_depth: f32,
 }
 
 impl TissueCompartment for ZHL16Compartment {
@@ -35,6 +36,9 @@ impl TissueCompartment for ZHL16Compartment {
 
         // update elapsed time
         self.elapsed_time += time;
+
+        // update last depth
+        self.last_depth = (ata - 1.0) * 10.0
     }
 
     fn half_time(&self) -> f32 {
@@ -105,6 +109,7 @@ impl ZHL16Compartment {
             pp_he: gas_mix.pp_he(1.0),
             gas_mix,
             variant,
+            last_depth: 0.0,
         }
     }
 
@@ -430,8 +435,7 @@ mod tests {
         assert_eq!(round_f32(t.get_b(), 4), 0.9319);
     }
 
-    // TODO:
-    // Test nitrox M value
+    // TODO: Test nitrox M value
 
     // ---
     // TISSUE HELIOX TESTS
@@ -501,10 +505,9 @@ mod tests {
         }
     }
 
-    // TODO:
-    // Test Heliox M Value
+    // TODO: Test Heliox M Value
 
-    // TODO:
+    // TODO: Test Tissue Trimix
     // ---
     // TEST TISSUE TRIMIX
     // ---

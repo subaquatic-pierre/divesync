@@ -1,6 +1,7 @@
 use crate::{
     algorithm::{DecoAlgorithm, DecoAlgorithmVariant},
     deco::DecoStop,
+    gas::GasMix,
     profile::DiveProfile,
     tissue::CompartmentSnapshot,
     utils::calc_ata,
@@ -35,7 +36,7 @@ impl DecoAlgorithm for DSATAlgorithm {
         snaps
     }
 
-    fn run(&mut self, ata: f32, time: f32) {}
+    fn run(&mut self, mix: GasMix, ata: f32, time: f32) {}
 }
 
 impl DSATAlgorithm {

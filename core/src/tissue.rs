@@ -49,6 +49,7 @@ pub struct CompartmentSnapshot {
     pub gas_type: GasType,
     pub half_time: f32,
     pub cpt_num: usize,
+    pub last_depth: f32,
 }
 
 impl fmt::Display for CompartmentSnapshot {
@@ -63,14 +64,16 @@ impl fmt::Display for CompartmentSnapshot {
             Gas Mix: {}\n
             Gas Type: {:?}\n
             Variant: {:?}\n
-            CPT Number: {}",
+            CPT Number: {}\n,
+            Last Depth: {}",
             self.half_time,
             pp_n2,
             pp_he,
             self.gas_mix, // Assuming GasMix implements Display trait
             self.gas_type,
             self.variant,
-            self.cpt_num
+            self.cpt_num,
+            self.last_depth
         )
     }
 }
