@@ -36,11 +36,14 @@ impl DecoAlgorithm for ZHL16Algorithm {
                 elapsed_time: t.elapsed_time,
                 pp_n2,
                 pp_he,
-                gas_mix: t.gas_mix(),
-                gas_type: t.gas_mix.mix_type(),
+                m_val: t.m_value(),
+                o2_percent: t.gas_mix().pp_o2(1.0) * 100.0,
+                n2_percent: t.gas_mix().pp_n2(1.0) * 100.0,
+                he_percent: t.gas_mix().pp_he(1.0) * 100.0,
+                gas_type: t.gas_mix.mix_type().to_string(),
                 half_time: t.half_time(),
                 cpt_num: t.cpt_num,
-                variant: self.variant(),
+                variant: self.variant().to_string(),
                 last_depth: t.last_depth,
             })
         }

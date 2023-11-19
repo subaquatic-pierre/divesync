@@ -1,56 +1,32 @@
 mod args;
-mod cli;
 mod cmds;
+mod handlers;
+mod init;
+mod plotter;
+mod utils;
 
-use cli::init;
+use handlers::{deco::handle_deco_cmd, ndl::handle_ndl_cmd, run::handle_run_cmd};
+use init::init;
 
 use core::{
     algorithm::get_algo,
     gas::{GasMix, PPO2},
     profile::{DiveProfile, DiveProfileLevel},
 };
+use std::error::Error;
 
-fn main() {
+fn main() -> Result<(), Box<dyn Error>> {
     let cmd = init();
 
     let matches = cmd.get_matches();
 
     match matches.subcommand() {
-        Some(("ndl", sub_matches)) => {
-            let depth = sub_matches
-                .get_one::<f32>("depth")
-                .expect("depth is required");
-            let algo = sub_matches
-                .get_one::<String>("algo")
-                .expect("algorithm is required");
-
-            let algo = get_algo(algo);
-
-            if algo.is_none() {
-                println!("algorithm not found")
-            }
-
-            let algo = algo.unwrap();
-            let profile = DiveProfile {
-                levels: vec![{
-                    DiveProfileLevel {
-                        depth: *depth,
-                        time: 0,
-                        gas_mix: GasMix::new_nitrox(PPO2),
-                    }
-                }],
-            };
-
-            let ndl = algo.compute_ndl(profile);
-
-            println!(
-                "No decompression limit for depth: {depth}m is {ndl}, with algorithm: {}",
-                algo.name()
-            );
-        }
+        Some(("ndl", sub_matches)) => handle_ndl_cmd(sub_matches)?,
         Some(("deco", _sub_matches)) => {
             println!("{matches:?}");
         }
+        Some(("run", sub_matches)) => handle_run_cmd(sub_matches)?,
         _ => unreachable!("clap should ensure we don't get here"),
     };
+    Ok(())
 }

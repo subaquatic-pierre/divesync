@@ -1,13 +1,19 @@
+use csv::Writer;
+use std::env;
+use std::error::Error;
+use std::fmt;
+use std::fs;
+use std::path::{Path, PathBuf};
+
 use crate::deco::DecoStop;
+use crate::dsat::algorithm::DSATAlgorithm;
 use crate::gas::GasMix;
 use crate::profile::DiveProfile;
-use crate::utils::calc_ata;
-use crate::zhl16::tissue::ZHL16Variant;
-use std::fmt;
-
-use crate::dsat::algorithm::DSATAlgorithm;
 use crate::tissue::CompartmentSnapshot;
+use crate::utils::calc_ata;
+use crate::utils::timestamp;
 use crate::zhl16::algorithm::ZHL16Algorithm;
+use crate::zhl16::tissue::ZHL16Variant;
 
 pub trait DecoAlgorithm {
     fn variant(&self) -> DecoAlgorithmVariant;
@@ -17,61 +23,20 @@ pub trait DecoAlgorithm {
     fn run(&mut self, mix: GasMix, ata: f32, time: f32);
 }
 
-pub struct AlgorithmRunnerResult {
-    pub interval_period: usize,
-    pub snapshots: Vec<Vec<CompartmentSnapshot>>,
-}
-
-pub struct AlgorithmRunner {
-    algo: Box<dyn DecoAlgorithm>,
-}
-
-impl AlgorithmRunner {
-    pub fn new(algo: Box<dyn DecoAlgorithm>) -> Self {
-        Self { algo }
-    }
-
-    /// Run the algorithm given profile
-    /// end result returns resultant TissueCompartments
-    pub fn run(
-        &mut self,
-        interval_period: usize,
-        dive_profile: DiveProfile,
-    ) -> AlgorithmRunnerResult {
-        // TODO:
-        // run on interval steps
-        // return compartment snapshots at given intervals
-        let mut snapshots = vec![];
-
-        // calculate number of interval periods in dive profile
-        for level in dive_profile.levels {
-            self.algo
-                .run(level.gas_mix, calc_ata(level.depth), level.time as f32);
-
-            snapshots.push(self.algo.snapshot());
-        }
-
-        AlgorithmRunnerResult {
-            interval_period,
-            snapshots,
-        }
-    }
-}
-
-pub fn get_algo(algo: &str) -> Option<Box<dyn DecoAlgorithm>> {
+pub fn get_algo(algo: &str) -> Result<Box<dyn DecoAlgorithm>, Box<dyn std::error::Error>> {
     let algo: DecoAlgorithmVariant = algo.into();
     match algo {
-        DecoAlgorithmVariant::Dsat => Some(Box::new(DSATAlgorithm::new())),
+        DecoAlgorithmVariant::Dsat => Ok(Box::new(DSATAlgorithm::new())),
         DecoAlgorithmVariant::ZHL16(ZHL16Variant::A) => {
-            Some(Box::new(ZHL16Algorithm::new(ZHL16Variant::A)))
+            Ok(Box::new(ZHL16Algorithm::new(ZHL16Variant::A)))
         }
         DecoAlgorithmVariant::ZHL16(ZHL16Variant::B) => {
-            Some(Box::new(ZHL16Algorithm::new(ZHL16Variant::B)))
+            Ok(Box::new(ZHL16Algorithm::new(ZHL16Variant::B)))
         }
         DecoAlgorithmVariant::ZHL16(ZHL16Variant::C) => {
-            Some(Box::new(ZHL16Algorithm::new(ZHL16Variant::C)))
+            Ok(Box::new(ZHL16Algorithm::new(ZHL16Variant::C)))
         }
-        _ => None,
+        _ => panic!("unable to find algorithm"),
     }
 }
 
@@ -83,7 +48,7 @@ pub enum DecoAlgorithmVariant {
 
 impl From<&str> for DecoAlgorithmVariant {
     fn from(s: &str) -> Self {
-        match s {
+        match s.to_lowercase().as_str() {
             "dsat" => DecoAlgorithmVariant::Dsat,
             "zhl16" => DecoAlgorithmVariant::ZHL16(ZHL16Variant::A),
             "zhl16-a" => DecoAlgorithmVariant::ZHL16(ZHL16Variant::A),

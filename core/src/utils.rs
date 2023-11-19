@@ -1,5 +1,25 @@
+use std::{
+    env,
+    path::{Path, PathBuf},
+    time::SystemTime,
+};
+
 pub fn calc_ata(depth: f32) -> f32 {
     (depth + 10.0) / 10.0
+}
+
+pub fn timestamp() -> u64 {
+    match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
+        Ok(n) => n.as_secs(),
+        Err(_) => panic!("SystemTime before UNIX EPOCH!"),
+    }
+}
+
+pub fn home_dir() -> PathBuf {
+    match env::home_dir() {
+        Some(path) => path,
+        None => panic!("Impossible to get your home dir!"),
+    }
 }
 
 pub fn round_f32(num: f32, num_dec: usize) -> f32 {

@@ -55,22 +55,18 @@ impl TissueCompartment for ZHL16Compartment {
     }
 
     fn m_value(&self) -> f32 {
-        // TODO:
-        // implement v_value
+        let m_value_n2 = (self.pp_n2 - self.n2_a()) * self.n2_b();
+
+        let m_value_he = (self.pp_he - self.he_a()) * self.he_b();
+
         match self.gas_mix.mix_type() {
-            GasType::Nitrox => {
-                let b = 0.0;
-                return self.pp_n2;
-            }
-            GasType::Heliox => {
-                let b = 0.0;
-
-                return self.pp_he;
-            }
+            GasType::Nitrox => m_value_n2,
+            GasType::Heliox => m_value_he,
             GasType::Trimix => {
-                let b = 0.0;
-
-                return self.pp_he + self.pp_n2;
+                // TODO:
+                // implement trimix M-Value
+                42.2
+                // unimplemented!();
             }
         }
     }

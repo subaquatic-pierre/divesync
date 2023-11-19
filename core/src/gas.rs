@@ -136,11 +136,21 @@ impl GasMix {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum GasType {
     Nitrox,
     Heliox,
     Trimix,
+}
+
+impl Display for GasType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            GasType::Nitrox => write!(f, "Nitrox"),
+            GasType::Heliox => write!(f, "Heliox"),
+            GasType::Trimix => write!(f, "Trimix"),
+        }
+    }
 }
 
 impl Display for GasMix {
