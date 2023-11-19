@@ -47,3 +47,17 @@ make test_all
 ```
 make install
 ```
+
+## Contributing
+
+Contributions are welcome! Feel free to open issues or submit pull requests.
+
+## Roadmap
+
+- Implement additional features.
+- Improve protocol efficiency.
+- Enhance security measures.
+
+License
+
+This project is licensed under the MIT License.
