@@ -71,10 +71,13 @@ impl TissueCompartment for ZHL16Compartment {
         }
     }
 
+    /// Get current partial pressure of Nitrogen and Helium
+    /// within the tissue
     fn n2_he_pp(&self) -> (f32, f32) {
         (self.pp_n2, self.pp_he)
     }
 
+    /// Get current gas mixture used on tissue
     fn gas_mix(&self) -> GasMix {
         self.gas_mix.clone()
     }
@@ -110,40 +113,31 @@ impl ZHL16Compartment {
     }
 
     pub fn get_a(&self) -> f32 {
-        match self.gas_mix.mix_type() {
-            GasType::Nitrox => self.n2_a(),
-            GasType::Heliox => self.he_a(),
-            GasType::Trimix => {
-                let pp_he = self.gas_mix.pp_he(1.0);
-                let pp_n2 = self.gas_mix.pp_n2(1.0);
-
-                ((self.he_a() * pp_he) + (self.n2_a() * pp_n2)) / pp_he + pp_n2
-            }
-        }
+        let pp_he = self.gas_mix.pp_he(1.0);
+        let pp_n2 = self.gas_mix.pp_n2(1.0);
+        ((self.he_a() * pp_he) + (self.n2_a() * pp_n2)) / (pp_he + pp_n2)
     }
 
     pub fn get_b(&self) -> f32 {
-        match self.gas_mix.mix_type() {
-            GasType::Nitrox => self.n2_b(),
-            GasType::Heliox => self.he_b(),
-            GasType::Trimix => {
-                let pp_he = self.gas_mix.pp_he(1.0);
-                let pp_n2 = self.gas_mix.pp_n2(1.0);
+        let pp_he = self.gas_mix.pp_he(1.0);
+        let pp_n2 = self.gas_mix.pp_n2(1.0);
 
-                ((self.he_b() * pp_he) + (self.n2_b() * pp_n2)) / pp_he + pp_n2
-            }
-        }
+        ((self.he_b() * pp_he) + (self.n2_b() * pp_n2)) / (pp_he + pp_n2)
     }
 
+    /// Set ZHL variant of tissue compartment
     pub fn set_variant(&mut self, variant: ZHL16Variant) {
         self.variant = variant;
     }
 
+    /// Set partial pressure of Helium and Nitrogen of current tissue
+    /// compartment, can be used to update tissue based on previous dive
     pub fn set_pp(&mut self, nitrogen: f32, helium: f32) {
         self.pp_n2 = nitrogen;
         self.pp_he = helium;
     }
 
+    /// Set gas mixture used by tissue compartment
     pub fn set_gas_mix(&mut self, mix: GasMix) {
         self.gas_mix = mix;
     }
@@ -151,6 +145,9 @@ impl ZHL16Compartment {
     // ---
     // PRIVATE METHODS
     // ---
+
+    /// Get regression A of Nitrogen of current tissue
+    /// Nitrogen half time, based on Bühlmann decompression algorithm
     fn n2_a(&self) -> f32 {
         let ht = self.n2_ht();
         let denom = n_root(ht, 3); // denominator
@@ -219,6 +216,8 @@ impl ZHL16Compartment {
         }
     }
 
+    /// Get regression B of Nitrogen of current tissue
+    /// Nitrogen half time, based on Bühlmann decompression algorithm
     fn n2_b(&self) -> f32 {
         let ht = self.n2_ht();
 
@@ -235,6 +234,8 @@ impl ZHL16Compartment {
         b
     }
 
+    /// Get regression A of Helium of current tissue
+    /// Helium half time, based on Bühlmann decompression algorithm
     fn he_a(&self) -> f32 {
         let ht = self.he_ht();
         let denom = n_root(ht, 3); // denominator
@@ -242,6 +243,8 @@ impl ZHL16Compartment {
         a
     }
 
+    /// Get regression B of Helium of current tissue
+    /// Helium half time, based on Bühlmann decompression algorithm
     fn he_b(&self) -> f32 {
         let ht = self.he_ht();
 
@@ -250,10 +253,12 @@ impl ZHL16Compartment {
         b
     }
 
+    /// Get half time of Nitrogen of current tissue compartment
     fn n2_ht(&self) -> f32 {
         ZHL16Compartment::N2_HALF_TIMES[self.cpt_num]
     }
 
+    /// Get half time of Helium of current tissue compartment
     fn he_ht(&self) -> f32 {
         ZHL16Compartment::HE_HALF_TIMES[self.cpt_num]
     }
