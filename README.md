@@ -29,6 +29,37 @@ The "api" package offers a higher-level API for convenient use on different plat
 - **RESTful API**: Provides a RESTful API for interaction with external applications.
 - **Platform Agnostic**: Designed to be easily integrated into various applications.
 
+## CLI Usage
+
+1. Make install from root
+
+```sh
+make install
+```
+
+2. Run CLI
+
+```
+./bin/divesync-cli --help
+
+Command line utility to calculate all things deco
+
+Usage: divesync-cli <COMMAND>
+
+Commands:
+  ndl   Compute no decompression limits
+  deco  Compute deco stops
+  run   Run a given dive profile
+  help  Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help
+          Print help (see a summary with '-h')
+
+  -V, --version
+          Print version
+```
+
 ## Development
 
 ### Run tests
